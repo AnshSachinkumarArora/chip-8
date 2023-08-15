@@ -10,7 +10,7 @@ class chip8 {
         //member variables
         unsigned short opcode;
         unsigned char memory[4096];
-        unsigned char V[16];
+        unsigned char registers[16];
         unsigned short indexReg;
         unsigned short programCounter;
         unsigned char delayTimer;

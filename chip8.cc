@@ -26,6 +26,22 @@ void chip8::initialize() {
   this->indexReg = 0;
   this->stackPointer = 0;
 
+  for(int i = 0; i < sizeof(this->memory); i++) {
+    this->memory[i] = 0;
+  }
+
+  for(int i = 0; i < sizeof(this->stack); i++) {
+    this->stack[i] = 0;
+  }
+
+  for(int i = 0; i < sizeof(this->screen); i++) {
+    this->screen[i] = 0;
+  }
+
+  for(int i = 0; i < sizeof(this->registers); i++) {
+    this->registers[i] = 0;
+  }
+
   for(int i = 0; i < 80; i++) {
     memory[i] = chip8_fontset[i];
   }
@@ -59,9 +75,42 @@ bool chip8::loadFile(const char* fileName) {
 void chip8::emulateCycle() {
   this->opcode = this->memory[this->programCounter] <<8 | this->memory[this->programCounter + 1];
 
-  unsigned char temp = opcode & 0xF000;
+  switch(this->opcode & 0xF000) {
+    case 0x0000:
+      switch(this->opcode & 0x000F) {
+        //00E0
+        case 0x0000:
+          for(int i = 0; i < sizeof(this->screen); i++) {
+            this->screen[i] = 0;
+          }
+          break;
+        //00EE
+        case 0x000E:
+          this->programCounter = this->stack[this->stackPointer];
+          this->stackPointer--;
+          this->programCounter += 2;
+          break;
+      }
+      break;
+    
+    case 0x0001:
+      //1nnn
+      this->programCounter = this->opcode & 0x0FFF;
+      break;
 
-  switch(temp) {
+    case 0x0002:
+      //2nnn
+      this->stack[this->stackPointer] = this->programCounter;
+      this->stackPointer++;
+      this->programCounter = this->opcode & 0x0FFF;
+      break;
 
+    case 0x0003:
+      //3xkk
+      if(this->registers[(this->opcode & 0x0F00) >> 8] == this->opcode & 0x00FF) {
+        this->programCounter += 4;
+      } else {
+        this->programCounter += 2;
+      }
   }
 }
