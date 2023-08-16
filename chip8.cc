@@ -21,25 +21,25 @@ unsigned char chip8::chip8_fontset[80] =
 };
 
 void chip8::initialize() {
-  this->programCounter = 0x200;
-  this->opcode = 0;
-  this->indexReg = 0;
-  this->stackPointer = 0;
+  programCounter = 0x200;
+  opcode = 0;
+  indexReg = 0;
+  stackPointer = 0;
 
-  for(int i = 0; i < sizeof(this->memory); i++) {
-    this->memory[i] = 0;
+  for(int i = 0; i < sizeof(memory); i++) {
+    memory[i] = 0;
   }
 
-  for(int i = 0; i < sizeof(this->stack); i++) {
-    this->stack[i] = 0;
+  for(int i = 0; i < sizeof(stack); i++) {
+    stack[i] = 0;
   }
 
-  for(int i = 0; i < sizeof(this->screen); i++) {
-    this->screen[i] = 0;
+  for(int i = 0; i < sizeof(screen); i++) {
+    screen[i] = 0;
   }
 
-  for(int i = 0; i < sizeof(this->registers); i++) {
-    this->registers[i] = 0;
+  for(int i = 0; i < sizeof(registers); i++) {
+    registers[i] = 0;
   }
 
   for(int i = 0; i < 80; i++) {
@@ -63,7 +63,7 @@ bool chip8::loadFile(const char* fileName) {
   fread(buffer, sizeof(char), (size_t)fileSize, file);
 
   for(int i = 0; i < fileSize; i++) {
-    this->memory[512+i] = (unsigned char)buffer[i];
+    memory[512+i] = (unsigned char)buffer[i];
   }
 
   fclose(file);
@@ -73,44 +73,115 @@ bool chip8::loadFile(const char* fileName) {
 }
 
 void chip8::emulateCycle() {
-  this->opcode = this->memory[this->programCounter] <<8 | this->memory[this->programCounter + 1];
+  opcode = memory[programCounter] <<8 | memory[programCounter + 1];
 
-  switch(this->opcode & 0xF000) {
+  switch(opcode & 0xF000) {
     case 0x0000:
-      switch(this->opcode & 0x000F) {
+      switch(opcode & 0x000F) {
         //00E0
         case 0x0000:
-          for(int i = 0; i < sizeof(this->screen); i++) {
-            this->screen[i] = 0;
+          for(int i = 0; i < sizeof(screen); i++) {
+            screen[i] = 0;
           }
           break;
         //00EE
         case 0x000E:
-          this->programCounter = this->stack[this->stackPointer];
-          this->stackPointer--;
-          this->programCounter += 2;
+          programCounter = stack[stackPointer];
+          stackPointer--;
+          programCounter += 2;
           break;
       }
       break;
     
     case 0x0001:
       //1nnn
-      this->programCounter = this->opcode & 0x0FFF;
+      programCounter = opcode & 0x0FFF;
       break;
 
     case 0x0002:
       //2nnn
-      this->stack[this->stackPointer] = this->programCounter;
-      this->stackPointer++;
-      this->programCounter = this->opcode & 0x0FFF;
+      stack[stackPointer] = programCounter;
+      stackPointer++;
+      programCounter = opcode & 0x0FFF;
       break;
 
     case 0x0003:
       //3xkk
-      if(this->registers[(this->opcode & 0x0F00) >> 8] == this->opcode & 0x00FF) {
-        this->programCounter += 4;
+      if(registers[(opcode & 0x0F00) >> 8] == opcode & 0x00FF) {
+        programCounter += 4;
       } else {
-        this->programCounter += 2;
+        programCounter += 2;
+      }
+      break;
+
+    case 0x0004:
+      //4xkk
+      if(registers[(opcode & 0x0F00) >> 8] != opcode & 0x00FF) {
+        programCounter += 4;
+      } else {
+        programCounter += 2;
+      }
+      break;
+
+    case 0x0005:
+      //5xy0
+      if(registers[(opcode & 0x0F00) >> 8] == registers[(opcode & 0x00F0) >> 4]) {
+        programCounter += 4;
+      } else {
+        programCounter += 2;
+      }
+      break;
+
+    case 0x0006:
+      //6xkk
+      registers[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
+      programCounter += 2;
+      break;
+
+    case 0x0007:
+      //7xkk
+      registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] + opcode & 0x00FF;
+      programCounter += 2;
+      break;
+
+    case 0x0008:
+      //8xy*
+      switch(opcode & 0x000F){
+        case 0x0000:
+          //8xy0
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x00F0) >> 4];
+          programCounter += 2;
+          break;
+        
+        case 0x0001:
+          //8xy1
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] | registers[(opcode & 0x00F0) >> 4];
+          programCounter += 2;
+          break;
+
+        case 0x0002:
+          //8xy2
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] & registers[(opcode & 0x00F0) >> 4];
+          programCounter += 2;
+          break;
+
+        case 0x0003:
+          //8xy3
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] ^ registers[(opcode & 0x00F0) >> 4];
+          programCounter += 2;
+          break;
+
+        case 0x0004:
+          //8xy4
+          unsigned short temp = registers[(opcode & 0x0F00) >> 8] + registers[(opcode & 0x00F0) >> 4];
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] + registers[(opcode & 0x00F0) >> 4];
+          if(temp > 0x00FF) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          programCounter += 2;
+          break;
       }
   }
 }
