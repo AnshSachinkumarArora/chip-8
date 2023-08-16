@@ -83,29 +83,31 @@ void chip8::emulateCycle() {
           for(int i = 0; i < sizeof(screen); i++) {
             screen[i] = 0;
           }
+          draw = true;
+          programCounter += 2;
           break;
         //00EE
         case 0x000E:
-          programCounter = stack[stackPointer];
           stackPointer--;
+          programCounter = stack[stackPointer];
           programCounter += 2;
           break;
       }
       break;
     
-    case 0x0001:
+    case 0x1000:
       //1nnn
       programCounter = opcode & 0x0FFF;
       break;
 
-    case 0x0002:
+    case 0x2000:
       //2nnn
       stack[stackPointer] = programCounter;
       stackPointer++;
       programCounter = opcode & 0x0FFF;
       break;
 
-    case 0x0003:
+    case 0x3000:
       //3xkk
       if(registers[(opcode & 0x0F00) >> 8] == opcode & 0x00FF) {
         programCounter += 4;
@@ -114,7 +116,7 @@ void chip8::emulateCycle() {
       }
       break;
 
-    case 0x0004:
+    case 0x4000:
       //4xkk
       if(registers[(opcode & 0x0F00) >> 8] != opcode & 0x00FF) {
         programCounter += 4;
@@ -123,7 +125,7 @@ void chip8::emulateCycle() {
       }
       break;
 
-    case 0x0005:
+    case 0x5000:
       //5xy0
       if(registers[(opcode & 0x0F00) >> 8] == registers[(opcode & 0x00F0) >> 4]) {
         programCounter += 4;
@@ -132,19 +134,19 @@ void chip8::emulateCycle() {
       }
       break;
 
-    case 0x0006:
+    case 0x6000:
       //6xkk
       registers[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
       programCounter += 2;
       break;
 
-    case 0x0007:
+    case 0x7000:
       //7xkk
       registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] + opcode & 0x00FF;
       programCounter += 2;
       break;
 
-    case 0x0008:
+    case 0x8000:
       //8xy*
       switch(opcode & 0x000F){
         case 0x0000:
@@ -182,6 +184,201 @@ void chip8::emulateCycle() {
           }
           programCounter += 2;
           break;
+
+        case 0x0005:
+          //8xy5
+          if(registers[(opcode & 0x0F00) >> 8] > registers[(opcode & 0x00F0) >> 4]) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] - registers[(opcode & 0x00F0) >> 4];
+          programCounter += 2;
+          break;
+
+        case 0x0006:
+          //8xy6
+          if((registers[(opcode & 0x0F00) >> 8] & 0x0001) == 1) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          registers[(opcode & 0x0F00) >> 8] >>= 1;
+          break;
+        
+        case 0x0007:
+          //8xy7
+          if(registers[(opcode & 0x0F00) >> 8] < registers[(opcode & 0x00F0) >> 4]) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x00F0) >> 4] - registers[(opcode & 0x0F00) >> 8];
+          programCounter += 2;
+          break;
+
+        case 0x000E:
+          //8xyE
+          if((registers[(opcode & 0x0F00) >> 8] & 0x0080) == 1) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          registers[(opcode & 0x0F00) >> 8] <<= 1;
+          break;
       }
+      break;
+
+    case 0x9000:
+      //9xy0
+      if(registers[(opcode & 0x0F00) >> 8] != registers[(opcode & 0x00F0) >> 4]) {
+        programCounter += 4;
+      } else {
+        programCounter += 2;
+      }
+      break;
+
+    case 0xA000:
+      //Annn
+      indexReg = opcode & 0x0FFF;
+      programCounter += 2;
+      break;
+    
+    case 0xB000:
+      //Bnnn
+      programCounter = (opcode & 0x0FFF) + registers[0x0000];
+      break;
+
+    case 0xC000:
+      //Cxkk
+      registers[(opcode & 0x0F00) >> 8] = (rand() % 256) + (opcode & 0x00FF);
+      programCounter += 2;
+      break;
+
+    case 0xD000:
+      //Dxyn
+      unsigned short x = registers[(opcode & 0x0F00) >> 8];
+      unsigned short y = registers[(opcode & 0x00F0) >> 4];
+      unsigned short n = opcode & 0x000F;
+      unsigned short pix;
+      registers[0x000F] = 0;
+
+      for(int i = 0; i < n; i++) {
+        pix = memory[indexReg + i];
+        for(int j = 0; j < 8; j++) {
+          if((pix & (0x0080 >> j)) == 1) {
+            if(screen[(x + j + ((y + i) * 64)) == 1]) {
+              registers[0x000F] = 1;
+            }
+            screen[(x + j + ((y + i) * 64))] ^= 1;
+          }
+        }
+      }
+      draw = true;
+      programCounter += 2;
+      break;
+
+    case 0xE000:
+      //Ex**
+      switch(opcode & 0x00FF) {
+        case 0x009E:
+          //Ex9E
+          if(keyPad[registers[(opcode & 0x0F00) >> 8]] == 1) {
+            programCounter += 4;
+          } else {
+            programCounter += 2;
+          }
+          break;
+        
+        case 0x00A1:
+          //ExA1
+          if(keyPad[registers[(opcode & 0x0F00) >> 8]] != 1) {
+            programCounter += 4;
+          } else {
+            programCounter += 2;
+          }
+          break;
+      }
+      break;
+
+    case 0xF000:
+      //Fx**
+      switch(opcode & 0x00F) {
+        case 0x0007:
+          //Fx07
+          registers[(opcode & 0x0F00) >> 8] = delayTimer;
+          programCounter += 2;
+          break;
+
+        case 0x000A:
+          //Fx0A
+          bool keyPress = false;
+          for(int i = 0; i < sizeof(keyPad); i++) {
+            if(keyPad[i] == 1) {
+              registers[(opcode & 0x0F00) >> 8] = i;
+              keyPress = true;
+            }
+          }
+          if(!keyPress) {
+            return;
+          }
+          programCounter += 2;
+          break;
+
+        case 0x0015:
+          //Fx15
+          delayTimer = registers[(opcode & 0x0F00) >> 8];
+          programCounter += 2;
+          break;
+
+        case 0x0018:
+          //Fx18
+          soundTimer = registers[(opcode & 0x0F00) >> 8];
+          programCounter += 2;
+          break;
+
+        case 0x001E:
+          //Fx1E
+          if(indexReg + registers[(opcode & 0x0F00) >> 8] > 0x0FFF) {
+            registers[0x000F] = 1;
+          } else {
+            registers[0x000F] = 0;
+          }
+          indexReg += registers[(opcode & 0x0F00) >> 8];
+          programCounter += 2;
+          break;
+
+        case 0x0029:
+          //Fx29
+          indexReg = registers[(opcode & 0x0F00) >> 8] * 0x5;
+          programCounter += 2;
+          break;
+
+        case 0x0033:
+          //Fx33
+          memory[indexReg] = registers[(opcode & 0x0F00) >> 8] / 100;
+          memory[indexReg+1] = (registers[(opcode & 0x0F00) >> 8] / 100) % 10;
+          memory[indexReg+2] = registers[(opcode & 0x0F00) >> 8] % 10;
+          programCounter += 2;
+          break;
+
+        case 0x0055:
+          //Fx55
+          for(int i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+            memory[indexReg+i] = registers[i];
+          }
+          indexReg = ((opcode & 0x0F00) >> 8) + 1;
+          programCounter += 2;
+          break;
+        
+        case 0x0065:
+          for(int i = 0; i < ((opcode & 0x0F00) >> 8); i++) {
+            registers[i] = memory[indexReg+i];
+          }
+          indexReg = ((opcode & 0x0F00) >> 8) + 1;
+          programCounter += 2;
+          break;        
+      }
+      break;
   }
 }

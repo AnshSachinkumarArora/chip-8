@@ -23,6 +23,7 @@ class chip8 {
         //member variables
         unsigned char screen[64*32];
         unsigned char keyPad[16];
+        bool draw;
         
         //member functions
         void initialize();
