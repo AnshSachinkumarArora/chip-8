@@ -42,6 +42,14 @@ void chip8::initialize() {
     registers[i] = 0;
   }
 
+  for(int i = 0; i < sizeof(keyPad); i++) {
+    keyPad[i] = 0;
+  }
+
+  delayTimer = 0;
+  soundTimer = 0;
+  draw = true;
+
   for(int i = 0; i < 80; i++) {
     memory[i] = chip8_fontset[i];
   }
@@ -174,6 +182,7 @@ void chip8::emulateCycle() {
           break;
 
         case 0x0004:
+        {
           //8xy4
           unsigned short temp = registers[(opcode & 0x0F00) >> 8] + registers[(opcode & 0x00F0) >> 4];
           registers[(opcode & 0x0F00) >> 8] = registers[(opcode & 0x0F00) >> 8] + registers[(opcode & 0x00F0) >> 4];
@@ -184,6 +193,7 @@ void chip8::emulateCycle() {
           }
           programCounter += 2;
           break;
+        }
 
         case 0x0005:
           //8xy5
@@ -256,6 +266,7 @@ void chip8::emulateCycle() {
       break;
 
     case 0xD000:
+    {
       //Dxyn
       unsigned short x = registers[(opcode & 0x0F00) >> 8];
       unsigned short y = registers[(opcode & 0x00F0) >> 4];
@@ -277,6 +288,7 @@ void chip8::emulateCycle() {
       draw = true;
       programCounter += 2;
       break;
+    }
 
     case 0xE000:
       //Ex**
@@ -311,6 +323,7 @@ void chip8::emulateCycle() {
           break;
 
         case 0x000A:
+        {
           //Fx0A
           bool keyPress = false;
           for(int i = 0; i < sizeof(keyPad); i++) {
@@ -324,6 +337,7 @@ void chip8::emulateCycle() {
           }
           programCounter += 2;
           break;
+        }
 
         case 0x0015:
           //Fx15
@@ -380,5 +394,15 @@ void chip8::emulateCycle() {
           break;        
       }
       break;
+  }
+
+  if(delayTimer > 0) {
+    delayTimer--;
+  }
+  if(soundTimer > 0) {
+    if(soundTimer == 1) {
+      std::cout<<"Beep"<<std::endl;
+    }
+    soundTimer--;
   }
 }
