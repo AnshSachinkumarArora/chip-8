@@ -20,7 +20,7 @@ unsigned char chip8::chip8_fontset[80] =
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-void chip8::initialize() {
+chip8::chip8() {
   programCounter = 0x200;
   opcode = 0;
   indexReg = 0;
@@ -50,8 +50,8 @@ void chip8::initialize() {
   soundTimer = 0;
   draw = true;
 
-  for(int i = 0; i < 80; i++) {
-    memory[i] = chip8_fontset[i];
+  for(unsigned char i = 0; i < 80; i++) {
+    memory[0x50 + i] = chip8_fontset[i];
   }
 }
 

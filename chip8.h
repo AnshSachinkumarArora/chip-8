@@ -24,9 +24,11 @@ class chip8 {
         unsigned char screen[64*32];
         unsigned char keyPad[16];
         bool draw;
+
+        //constructor
+        chip8();
         
         //member functions
-        void initialize();
         bool loadFile(const char* fileName);
         void emulateCycle();
 };
