@@ -2,31 +2,41 @@
 #define CHIP_8_H
 
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
+#include <random>
+#include "time.h"
 
 
 class chip8 {
     private:
         //member variables
-        unsigned short opcode;
-        unsigned char memory[4096];
-        unsigned char registers[16];
-        unsigned short indexReg;
-        unsigned short programCounter;
-        unsigned char delayTimer;
-        unsigned char soundTimer;
-        unsigned short stack[16];
-        unsigned short stackPointer;
-        static unsigned char chip8_fontset[80];
+        uint8_t memory[4096];
+        uint8_t registers[16];
+
+        uint16_t opcode;
+        uint16_t indexReg;
+        uint16_t programCounter;
+
+        uint8_t delayTimer;
+        uint8_t soundTimer;
+
+        uint16_t stack[16];
+        uint16_t stackPointer;
+
+        void initialize();
 
     public:
         //member variables
-        unsigned char screen[64*32];
-        unsigned char keyPad[16];
+        uint8_t screen[64*32];
+        uint8_t keyPad[16];
         bool draw;
 
         //constructor
         chip8();
+        //destructor 
+        ~chip8();
         
         //member functions
         bool loadFile(const char* fileName);

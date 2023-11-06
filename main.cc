@@ -3,7 +3,7 @@
 #include <chrono>
 #include <thread>
 #include "stdint.h"
-#include <SDL.h>
+#include "SDL2/SDL.h"
 
 using namespace std;
 
@@ -75,9 +75,10 @@ int main(int argc, char **argv) {
 
     load:
     // Attempt to load ROM
-    if (!c8.loadFile(argv[1]))
+    if (!c8.loadFile(argv[1])) {
+        std::cout<<"Couldn't load file"<<std::endl;
         return 2;
-
+    }
     // Emulation loop
     while (true) {
         c8.emulateCycle();
