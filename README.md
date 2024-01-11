@@ -5,7 +5,8 @@ This Chip-8 emulator is written in C++.
 Requires CMake and SDL/SDL2:
 
 Steps to compile:
-```mkdir build
+```
+mkdir build
 cd build
 cmake ..
 make
